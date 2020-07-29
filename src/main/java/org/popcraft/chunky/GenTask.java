@@ -16,7 +16,7 @@ public class GenTask implements Runnable {
     private ChunkCoordinateIterator chunkCoordinates;
     private boolean stopped, cancelled;
     private final static int MAX_WORKING = 50;
-    private final static String FORMAT_UPDATE = "[Chunky] Task running for %s. Processed: %d chunks (%.2f%%), ETA: %01d:%02d:%02d, Rate: %.1f cps, Current: %d, %d";
+    private final static String FORMAT_UPDATE = "[Chunky] Task running for %s. Processed: %d chunks (%.2f%%), ETA: %01d:%02d:%02d, Rate: %.1f cps, Current: %d, %d, Loaded: %d";
     private final static String FORMAT_DONE = "[Chunky] Task finished for %s. Processed: %d chunks (%.2f%%), Total time: %01d:%02d:%02d";
     private final static String FORMAT_STOPPED = "[Chunky] Task stopped for %s.";
     private final AtomicLong startTime = new AtomicLong();
@@ -74,7 +74,7 @@ public class GenTask implements Runnable {
             int etaHours = eta / 3600;
             int etaMinutes = (eta - etaHours * 3600) / 60;
             int etaSeconds = eta - etaHours * 3600 - etaMinutes * 60;
-            message = String.format(FORMAT_UPDATE, world, chunkNum, percentDone, etaHours, etaMinutes, etaSeconds, speed, chunkX, chunkZ);
+            message = String.format(FORMAT_UPDATE, world, chunkNum, percentDone, etaHours, etaMinutes, etaSeconds, speed, chunkX, chunkZ, chunkWorld.getLoadedChunks().length);
         }
         chunky.getServer().getConsoleSender().sendMessage(message);
     }
@@ -98,6 +98,7 @@ public class GenTask implements Runnable {
             PaperLib.getChunkAtAsync(world, chunkCoord.x, chunkCoord.z).thenAccept(chunk -> {
                 working.release();
                 printUpdate(world, chunk.getX(), chunk.getZ());
+                chunky.getServer().getScheduler().scheduleSyncDelayedTask(chunky, chunk::unload);
             });
         }
         if (stopped) {
